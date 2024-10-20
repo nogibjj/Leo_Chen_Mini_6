@@ -1,44 +1,36 @@
-"""
-Transforms and Loads data into the local SQLite3 database
-"""
-
-import sqlite3
 import csv
+import os
+from dotenv import load_dotenv
+from databricks import sql
 
 
-# load the csv file and insert into a new sqlite3 database
 def load(dataset="data/US_births.csv"):
     payload = csv.reader(open(dataset, newline=""), delimiter=",")
-    # skips the header of csv
     next(payload)
-    conn = sqlite3.connect("US_births_DB.db")
-    c = conn.cursor()
-    c.execute("DROP TABLE IF EXISTS US_births_DB")
-    c.execute(
-        """
-        CREATE TABLE US_births_DB (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            year INTEGER,
-            month INTEGER,
-            date_of_month INTEGER,
-            day_of_week INTEGER,
-            births INTEGER
-        )
-    """
-    )
-    # insert
-    c.executemany(
-        """
-        INSERT INTO US_births_DB (
-            year,
-            month,
-            date_of_month,
-            day_of_week,
-            births
-            ) 
-            VALUES (?, ?, ?, ?, ?)""",
-        payload,
-    )
-    conn.commit()
-    conn.close()
-    return "US_births_DB.db"
+
+    load_dotenv()
+    with sql.connect(
+        server_hostname=os.getenv("HOSTNAME"),
+        http_path=os.getenv("HTTP_PATH"),
+        access_token=os.getenv("KEY"),
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """CREATE TABLE IF NOT EXISTS US_Births_yc687
+                           (year INT, month INT, date_of_month INT, 
+                           day_of_week INT, births INT);
+                           """
+            )
+
+            cursor.execute("SELECT * FROM US_Births_yc687")
+            result = cursor.fetchall()
+            if not result:
+                string_sql = "INSERT INTO US_Births_yc687 VALUES"
+                for i in payload:
+                    string_sql += "\n" + str(tuple(i)) + ","
+                string_sql = string_sql[:-1] + ";"
+                cursor.execute(string_sql)
+
+            cursor.close()
+            connection.close()
+    return "db loaded or already loaded"

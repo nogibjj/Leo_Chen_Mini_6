@@ -1,38 +1,53 @@
-"""Query the database"""
+import os
+from dotenv import load_dotenv
+from databricks import sql
 
-import sqlite3
+complex_query = """
+WITH monthly_avg AS (
+    SELECT 
+        year,
+        month,
+        AVG(births) AS avg_births_per_month
+    FROM 
+        ids706_data_engineering.default.US_Births_yc687
+    GROUP BY 
+        year, month
+)
+SELECT 
+    b.year,
+    b.month,
+    b.date_of_month,
+    CASE 
+        WHEN b.day_of_week = 1 THEN 'Monday'
+        WHEN b.day_of_week = 2 THEN 'Tuesday'
+        WHEN b.day_of_week = 3 THEN 'Wednesday'
+        WHEN b.day_of_week = 4 THEN 'Thursday'
+        WHEN b.day_of_week = 5 THEN 'Friday'
+        WHEN b.day_of_week = 6 THEN 'Saturday'
+        WHEN b.day_of_week = 7 THEN 'Sunday'
+    END AS day_name,
+    b.births,
+    m.avg_births_per_month
+FROM 
+    ids706_data_engineering.default.US_Births_yc687 b
+JOIN
+    monthly_avg m ON b.year = m.year AND b.month = m.month
+ORDER BY 
+    b.year, b.month, b.date_of_month
+LIMIT 50;
+"""
 
 
 def query():
-    """CRUD"""
-    conn = sqlite3.connect("US_births_DB.db")
-    cursor = conn.cursor()
-
-    # C(reate)
-    cursor.execute(
-        """
-        INSERT INTO US_births_DB (year, month, date_of_month, day_of_week, births) 
-        VALUES (2024, 10, 5, 6, 7785)"""
-    )
-
-    # R(ead)
-    cursor.execute("SELECT * FROM US_births_DB")
-
-    # U(pdate)
-    cursor.execute(
-        """
-        UPDATE US_births_DB 
-        SET births = 7899
-        WHERE id = 55"""
-    )
-
-    # D(elete)
-    cursor.execute(
-        """
-        DELETE FROM US_births_DB 
-        WHERE id = 420"""
-    )
-
-    conn.commit()
-    conn.close()
-    return "Success!"
+    load_dotenv()
+    with sql.connect(
+        server_hostname=os.getenv("HOSTNAME"),
+        http_path=os.getenv("HTTP_PATH"),
+        access_token=os.getenv("KEY"),
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(complex_query)
+            result = cursor.fetchall()
+            for row in result:
+                print(row)
+    return "query successful"

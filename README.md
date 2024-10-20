@@ -1,17 +1,17 @@
-## Leo Chen Mini 5
+# Leo Chen Mini 6
 
-[![CI](https://github.com/nogibjj/Leo_Chen_Mini_5/actions/workflows/cicd.yml/badge.svg)](https://github.com/nogibjj/Leo_Chen_Mini_5/actions/workflows/cicd.yml)
+[![CI](https://github.com/nogibjj/Leo_Chen_Mini_6/actions/workflows/cicd.yml/badge.svg)](https://github.com/nogibjj/Leo_Chen_Mini_6/actions/workflows/cicd.yml)
 
-### File Structure
+## File Structure
 ```
-Leo_Chen_Mini_5/
+Leo_Chen_Mini_6/
 ├── .devcontainer/
 │   ├── devcontainer.json
 │   └── Dockerfile
 ├── .github/
 │   └── workflows/cicd.yml
 ├── .gitignore
-├── run.png
+├── expected_output.png
 ├── data/
 │   └── US_births.csv
 ├── Dockerfile
@@ -24,13 +24,12 @@ Leo_Chen_Mini_5/
 │   └── transform_load.py
 ├── README.md
 ├── requirements.txt
-├── US_births_DB.db
 ├── setup.sh
 └── test_lib.py
 ```
 
 ## Purpose
-The goal of this project is to build an ETL-Query pipeline. I used one of FiveThirtyEight's public datasets, extracted it into a local CSV file, loaded it into a .db file, and queried it using SQLite.
+Design a complex SQL query involving joins, aggregation, and sorting
 
 ## Data Source
 U.S. births data for the years 2000 to 2014, as provided by the Social Security Administration
@@ -45,15 +44,25 @@ Header | Definition
 
 [Link to data source](https://github.com/fivethirtyeight/data/blob/master/births/US_births_2000-2014_SSA.csv)
 
-## CRUD Operations
-Operations can be found [here](https://github.com/nogibjj/Leo_Chen_Mini_5/blob/main/mylib/query.py)
-1. Create: `create a new record: 2024, 10, 5, 6, 7785`
-2. Read: `read all data`
-3. Update: `update record 55: births = 7899`
-4. Delete: `delete record 420`
+## Query Explanation
+*See the query inside `mylib/query.py`*
 
-## Example Run
-![example run](run.png)
+- **CTE (Common Table Expression)**: The `WITH monthly_avg` block calculates the average number of births per month by year and month, using data from the `US_Births_yc687` table. It groups the data by `year` and `month`, and then computes the average number of births (`avg_births_per_month`).
 
-## References
-https://github.com/nogibjj/sqlite-lab
+- **Main Query**: 
+  - Selects the year, month, and date of the month for each record from the `US_Births_yc687` table.
+  - Uses a `CASE` statement to convert the numeric `day_of_week` (1–7) into the corresponding day name (Monday–Sunday).
+  - Retrieves the number of births for that specific day (`b.births`).
+  - Joins the `monthly_avg` table on `year` and `month` to include the average births per month (`m.avg_births_per_month`).
+  
+- **Sorting and Limiting**: The results are ordered by `year`, `month`, and `date_of_month`, showing the first 50 records.
+
+The output will show:
+- `year`, `month`, and `date_of_month` (for each day).
+- The name of the day (e.g., Monday).
+- The number of births on that particular day.
+- The average number of births for that entire month.
+The output is limited to the first 50 records and sorted chronologically.
+
+## Expected Output
+![expected output](expected_output.png)
